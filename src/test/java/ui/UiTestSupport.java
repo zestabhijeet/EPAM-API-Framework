@@ -1,16 +1,17 @@
 package ui;
 
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
 import constant.ApplicationConstant;
 import files.ConfigManager;
 import inventree.InvenTreeApiSupport;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.testng.SkipException;
 
 /**
- * Shared Selenium/config plumbing for the InvenTree UI suites: the
- * "skip if not configured" guard and WebDriver creation. Reuses
+ * Shared Playwright/config plumbing for the InvenTree UI suites: the
+ * "skip if not configured" guard and browser/page creation. Reuses
  * {@link InvenTreeApiSupport}'s BASE_URL/isBlank so both the API and UI
  * suites agree on what "not configured" means.
  */
@@ -29,19 +30,19 @@ final class UiTestSupport {
         }
     }
 
-    /**
-     * Headless by default (matches CI); pass -Dui.headless=false for a
-     * visible browser during local debugging.
-     */
-    static WebDriver newDriver() {
-        ChromeOptions options = new ChromeOptions();
-        if (!"false".equals(System.getProperty("ui.headless"))) {
-            options.addArguments("--headless=new");
-        }
-        options.addArguments("--window-size=1440,1000");
-        options.addArguments("--disable-gpu");
-        options.addArguments("--no-sandbox");
-        return new ChromeDriver(options);
+    static Playwright newPlaywright() {
+        return Playwright.create();
+    }
+
+    /** Headless by default (matches CI); pass -Dui.headless=false for a visible browser during local debugging. */
+    static Browser newBrowser(Playwright playwright) {
+        boolean headless = !"false".equals(System.getProperty("ui.headless"));
+        return playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
+    }
+
+    static Page newPage(Browser browser) {
+        Browser.NewContextOptions options = new Browser.NewContextOptions().setViewportSize(1440, 1000);
+        return browser.newContext(options).newPage();
     }
 
     static String unique(String prefix) {

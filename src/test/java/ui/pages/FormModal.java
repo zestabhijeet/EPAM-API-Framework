@@ -1,13 +1,8 @@
 package ui.pages;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.WebDriverWait;
-
-import java.time.Duration;
-import java.util.List;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.TimeoutError;
 
 /**
  * Generic driver for InvenTree's Mantine-based create/edit modals.
@@ -20,47 +15,32 @@ import java.util.List;
  * driver against that convention covers every InvenTree form instead of a
  * bespoke Page Object per modal.
  *
- * All lookups are scoped to this instance's own dialog element (captured at
- * construction time), not the whole page - required for flows like "create a
- * new Parameter Template inline while adding a Parameter", where two modals
- * (this one and the nested one) are in the DOM at once and both have their
- * own "Submit" button.
+ * All lookups are scoped to this instance's own dialog locator (the last
+ * "[role=dialog]" in the DOM at construction time) - required for flows
+ * like "create a new Parameter Template inline while adding a Parameter",
+ * where two modals (this one and the nested one) are open at once and both
+ * have their own "Submit" button.
  */
 public class FormModal {
 
-    private static final By DIALOG = By.cssSelector("[role='dialog']");
-    private static final By FORM_ERROR_BANNER = By.xpath(".//*[contains(text(),'Errors exist for one or more form fields')]");
+    private static final String FORM_ERROR_TEXT = "Errors exist for one or more form fields";
 
-    private final WebDriver driver;
-    private final WebDriverWait wait;
-    private final WebElement dialog;
+    private final Page page;
+    private final Locator dialog;
 
-    public FormModal(WebDriver driver) {
-        this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        // The most recently opened dialog is the last one in the DOM - the
-        // relevant instance whether this is the only modal open or a nested one.
-        this.dialog = wait.until(d -> {
-            List<WebElement> dialogs = d.findElements(DIALOG);
-            if (dialogs.isEmpty()) {
-                return null;
-            }
-            WebElement last = dialogs.get(dialogs.size() - 1);
-            return last.isDisplayed() ? last : null;
-        });
+    public FormModal(Page page) {
+        this.page = page;
+        this.dialog = page.locator("[role='dialog']").last();
+        dialog.waitFor();
     }
 
     public FormModal setText(String fieldName, String value) {
-        WebElement field = fieldFor("text", fieldName);
-        field.clear();
-        field.sendKeys(value);
+        dialog.locator("[aria-label='text-field-" + fieldName + "']").fill(value);
         return this;
     }
 
     public FormModal setNumber(String fieldName, String value) {
-        WebElement field = fieldFor("number", fieldName);
-        field.clear();
-        field.sendKeys(value);
+        dialog.locator("[aria-label='number-field-" + fieldName + "']").fill(value);
         return this;
     }
 
@@ -71,26 +51,25 @@ public class FormModal {
      * FormModal bound to the nested dialog this opens.
      */
     public FormModal openInlineCreate(String actionName) {
-        By locator = By.cssSelector("[aria-label='action-button-" + actionName + "']");
-        waitUntilClickable(locator).click();
-        return new FormModal(driver);
+        dialog.locator("[aria-label='action-button-" + actionName + "']").click();
+        return new FormModal(page);
     }
 
     /** Waits briefly for the server-validation error banner; false if it never appears. */
     public boolean hasFormError() {
-        return waitForDialogText(FORM_ERROR_BANNER);
+        return waitForDialogText(FORM_ERROR_TEXT);
     }
 
     /** Waits briefly for the given text to appear anywhere within this modal. */
     public boolean hasText(String expectedText) {
-        return waitForDialogText(By.xpath(".//*[contains(text(),'" + expectedText + "')]"));
+        return waitForDialogText(expectedText);
     }
 
-    private boolean waitForDialogText(By locator) {
+    private boolean waitForDialogText(String text) {
         try {
-            wait.until(d -> !dialog.findElements(locator).isEmpty());
+            dialog.locator("text=" + text).first().waitFor(new Locator.WaitForOptions().setTimeout(5000));
             return true;
-        } catch (org.openqa.selenium.TimeoutException notShown) {
+        } catch (TimeoutError notShown) {
             return false;
         }
     }
@@ -104,36 +83,17 @@ public class FormModal {
      * can then assert on.
      */
     public void submit() {
-        clickButtonByText("Submit");
-        wait.until(d -> {
-            try {
-                return !dialog.isDisplayed() || !dialog.findElements(FORM_ERROR_BANNER).isEmpty();
-            } catch (org.openqa.selenium.StaleElementReferenceException goneFromDom) {
-                return true;
+        dialog.locator(":text-is(\"Submit\")").click();
+        long deadline = System.currentTimeMillis() + 10000;
+        while (System.currentTimeMillis() < deadline) {
+            if (dialog.isHidden() || dialog.locator("text=" + FORM_ERROR_TEXT).count() > 0) {
+                return;
             }
-        });
+            page.waitForTimeout(200);
+        }
     }
 
     public void cancel() {
-        clickButtonByText("Cancel");
-    }
-
-    private WebElement fieldFor(String type, String fieldName) {
-        return waitUntilClickable(By.cssSelector("[aria-label='" + type + "-field-" + fieldName + "']"));
-    }
-
-    private void clickButtonByText(String text) {
-        waitUntilClickable(By.xpath(".//button[normalize-space()='" + text + "']")).click();
-    }
-
-    private WebElement waitUntilClickable(By locator) {
-        return wait.until(d -> {
-            try {
-                WebElement el = dialog.findElement(locator);
-                return (el.isDisplayed() && el.isEnabled()) ? el : null;
-            } catch (NoSuchElementException notYetPresent) {
-                return null;
-            }
-        });
+        dialog.locator(":text-is(\"Cancel\")").click();
     }
 }

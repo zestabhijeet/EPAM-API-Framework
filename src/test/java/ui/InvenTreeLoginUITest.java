@@ -1,6 +1,8 @@
 package ui;
 
-import org.openqa.selenium.WebDriver;
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -15,43 +17,46 @@ import static org.testng.Assert.assertTrue;
  */
 public class InvenTreeLoginUITest {
 
-    private WebDriver driver;
+    private Playwright playwright;
+    private Browser browser;
+    private Page page;
 
     @BeforeClass(alwaysRun = true)
     public void setUp() {
         UiTestSupport.requireConfigured();
-        driver = UiTestSupport.newDriver();
+        playwright = UiTestSupport.newPlaywright();
+        browser = UiTestSupport.newBrowser(playwright);
+        page = UiTestSupport.newPage(browser);
     }
 
     @AfterClass(alwaysRun = true)
     public void tearDown() {
-        if (driver != null) {
-            driver.quit();
+        if (browser != null) {
+            browser.close();
+        }
+        if (playwright != null) {
+            playwright.close();
         }
     }
 
     @Test
     public void validCredentialsLogInSuccessfully() {
-        // AppShell's constructor already waits for the post-login nav bar to
-        // render; that (plus the URL) is a more durable signal than the
-        // transient success toast, which can auto-dismiss before we check it.
-        new LoginPage(driver).open(UiTestSupport.BASE_URL).login(UiTestSupport.USERNAME, UiTestSupport.PASSWORD);
-        assertTrue(driver.getCurrentUrl().contains("/web/home"), "A valid login must land on the dashboard");
+        new LoginPage(page).open(UiTestSupport.BASE_URL).login(UiTestSupport.USERNAME, UiTestSupport.PASSWORD);
+        assertTrue(page.url().contains("/web/home"), "A valid login must land on the dashboard");
     }
 
     @Test(dependsOnMethods = "validCredentialsLogInSuccessfully")
     public void loggedInUserCanLogOut() {
-        AppShell shell = new AppShell(driver);
+        AppShell shell = new AppShell(page);
         LoginPage loginPage = shell.logout();
         assertTrue(loginPage.isDisplayed(), "Logging out must return the user to the login page");
     }
 
     @Test(dependsOnMethods = "loggedInUserCanLogOut")
     public void incorrectPasswordIsRejected() {
-        LoginPage loginPage = new LoginPage(driver).open(UiTestSupport.BASE_URL);
+        LoginPage loginPage = new LoginPage(page).open(UiTestSupport.BASE_URL);
         loginPage.submitExpectingFailure(UiTestSupport.USERNAME, "wrong-password-" + System.nanoTime());
         assertTrue(loginPage.hasLoginFailedNotification(), "A 'Login failed' notification should appear");
-        assertFalse(driver.getCurrentUrl().contains("/web/home"), "An incorrect password must not reach the dashboard");
+        assertFalse(page.url().contains("/web/home"), "An incorrect password must not reach the dashboard");
     }
-
 }

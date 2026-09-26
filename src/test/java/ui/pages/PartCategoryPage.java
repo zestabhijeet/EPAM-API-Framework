@@ -1,13 +1,7 @@
 package ui.pages;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
-
-import java.time.Duration;
-import java.util.List;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
 
 /**
  * Part Category list and detail pages: creating a Category, opening one,
@@ -16,68 +10,65 @@ import java.util.List;
  */
 public class PartCategoryPage {
 
-    private static final By PLUS_ICON_BUTTON = By.xpath("(//button[.//*[local-name()='svg' and contains(@class,'tabler-icon-plus')]])[1]");
+    private final Page page;
 
-    private final WebDriver driver;
-    private final WebDriverWait wait;
-
-    private PartCategoryPage(WebDriver driver) {
-        this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    private PartCategoryPage(Page page) {
+        this.page = page;
     }
 
-    public static PartCategoryPage openList(WebDriver driver, String baseUrl) {
-        driver.get(baseUrl + "/web/part/category/index/subcategories");
-        PartCategoryPage page = new PartCategoryPage(driver);
-        page.wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[normalize-space()='Part Categories']")));
-        return page;
+    public static PartCategoryPage openList(Page page, String baseUrl) {
+        page.navigate(baseUrl + "/web/part/category/index/subcategories");
+        PartCategoryPage categoryPage = new PartCategoryPage(page);
+        page.locator("text=Part Categories").first().waitFor();
+        return categoryPage;
     }
 
     public FormModal openCreateCategoryModal() {
-        wait.until(ExpectedConditions.elementToBeClickable(PLUS_ICON_BUTTON)).click();
-        return new FormModal(driver);
-    }
-
-    public void openCategoryByName(String name) {
-        clickByExactText(name);
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[normalize-space()='Category Details']")));
-    }
-
-    public void openPartsTab() {
-        // Scoped to the category detail page's own left-hand tab list -
-        // the top nav bar also has an unrelated "Parts" link, verified
-        // directly against a running instance via each tablist's aria-label.
-        By tab = By.xpath("//*[@aria-label='panel-tabs-partcategory']//*[normalize-space()='Parts']");
-        wait.until(ExpectedConditions.elementToBeClickable(tab)).click();
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[normalize-space()='Parts']")));
-    }
-
-    public FormModal openCreatePartModal() {
-        wait.until(ExpectedConditions.elementToBeClickable(PLUS_ICON_BUTTON)).click();
-        clickByExactText("Create Part");
-        return new FormModal(driver);
-    }
-
-    public void openPartByName(String name) {
-        clickByExactText(name);
+        plusButton().click();
+        return new FormModal(page);
     }
 
     /**
      * InvenTree's data-table rows render clickable names as plain
      * {@code <div>}/{@code <span>} elements with a React click handler, not
      * real {@code <a>} tags - verified directly against a running instance -
-     * so a text-based XPath match is used instead of {@code By.linkText}.
+     * so a text-based locator is used instead of a link role/selector.
      */
-    private void clickByExactText(String text) {
-        wait.until(ExpectedConditions.elementToBeClickable(By.xpath("(//*[normalize-space()='" + text + "'])[1]"))).click();
+    public void openCategoryByName(String name) {
+        page.locator(":text-is(\"" + name + "\")").first().click();
+        page.locator("text=Category Details").first().waitFor();
+    }
+
+    public void openPartsTab() {
+        // Scoped to the category detail page's own left-hand tab list -
+        // the top nav bar also has an unrelated "Parts" link, verified
+        // directly against a running instance via each tablist's aria-label.
+        page.locator("[aria-label='panel-tabs-partcategory']").locator(":text-is(\"Parts\")").click();
+        page.locator(":text-is(\"Parts\")").first().waitFor();
+    }
+
+    public FormModal openCreatePartModal() {
+        plusButton().click();
+        page.locator(":text-is(\"Create Part\")").click();
+        return new FormModal(page);
+    }
+
+    public void openPartByName(String name) {
+        page.locator(":text-is(\"" + name + "\")").first().click();
+    }
+
+    private Locator plusButton() {
+        return page.locator("button:has(svg.tabler-icon-plus)").first();
     }
 
     /** Reads the "Total Stock" column of the row for the named Part, by header position (not assumed column order). */
     public String getTotalStockForPart(String partName) {
-        List<WebElement> headers = driver.findElements(By.cssSelector("table thead th"));
+        page.locator("table thead th:has-text(\"Total Stock\")").waitFor();
+        Locator headers = page.locator("table thead th");
         int columnIndex = -1;
-        for (int i = 0; i < headers.size(); i++) {
-            if (headers.get(i).getText().trim().equals("Total Stock")) {
+        int count = headers.count();
+        for (int i = 0; i < count; i++) {
+            if (headers.nth(i).textContent().trim().equals("Total Stock")) {
                 columnIndex = i;
                 break;
             }
@@ -86,9 +77,8 @@ public class PartCategoryPage {
             throw new IllegalStateException("No 'Total Stock' column header found in the Parts table");
         }
 
-        WebElement row = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//tr[.//*[normalize-space()='" + partName + "']]")));
-        List<WebElement> cells = row.findElements(By.tagName("td"));
-        return cells.get(columnIndex).getText();
+        Locator row = page.locator("tr:has-text(\"" + partName + "\")").first();
+        row.waitFor();
+        return row.locator("td").nth(columnIndex).textContent();
     }
 }

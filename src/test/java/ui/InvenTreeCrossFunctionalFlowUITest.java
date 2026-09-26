@@ -1,9 +1,11 @@
 package ui;
 
 import client.RestClient;
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
 import inventree.InvenTreeApiSupport;
 import io.restassured.response.Response;
-import org.openqa.selenium.WebDriver;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -29,7 +31,9 @@ import static org.testng.Assert.assertTrue;
  */
 public class InvenTreeCrossFunctionalFlowUITest {
 
-    private WebDriver driver;
+    private Playwright playwright;
+    private Browser browser;
+    private Page page;
     private Integer categoryId;
     private String categoryName;
     private Integer partId;
@@ -43,8 +47,10 @@ public class InvenTreeCrossFunctionalFlowUITest {
                 InvenTreeApiSupport.CATEGORY_PATH, Map.of("name", categoryName));
         categoryId = categoryResponse.jsonPath().getInt("pk");
 
-        driver = UiTestSupport.newDriver();
-        new LoginPage(driver).open(UiTestSupport.BASE_URL).login(UiTestSupport.USERNAME, UiTestSupport.PASSWORD);
+        playwright = UiTestSupport.newPlaywright();
+        browser = UiTestSupport.newBrowser(playwright);
+        page = UiTestSupport.newPage(browser);
+        new LoginPage(page).open(UiTestSupport.BASE_URL).login(UiTestSupport.USERNAME, UiTestSupport.PASSWORD);
     }
 
     @AfterClass(alwaysRun = true)
@@ -58,8 +64,11 @@ public class InvenTreeCrossFunctionalFlowUITest {
             RestClient.delete(InvenTreeApiSupport.authenticatedSpec(), InvenTreeApiSupport.CATEGORY_PATH + categoryId + "/",
                     Map.of("delete_parts", false, "delete_child_categories", false));
         }
-        if (driver != null) {
-            driver.quit();
+        if (browser != null) {
+            browser.close();
+        }
+        if (playwright != null) {
+            playwright.close();
         }
     }
 
@@ -70,7 +79,7 @@ public class InvenTreeCrossFunctionalFlowUITest {
         String parameterValue = "Red";
 
         // 1. Create the Part inside the Category
-        PartCategoryPage categoryPage = PartCategoryPage.openList(driver, UiTestSupport.BASE_URL);
+        PartCategoryPage categoryPage = PartCategoryPage.openList(page, UiTestSupport.BASE_URL);
         categoryPage.openCategoryByName(categoryName);
         categoryPage.openPartsTab();
         categoryPage.openCreatePartModal().setText("name", partName).submit();
@@ -80,8 +89,8 @@ public class InvenTreeCrossFunctionalFlowUITest {
         assertEquals(partLookup.jsonPath().getInt("count"), 1, "The Part must exist immediately after creation");
         partId = partLookup.jsonPath().getInt("results[0].pk");
 
-        driver.get(UiTestSupport.BASE_URL + "/web/part/" + partId + "/details");
-        PartDetailPage partPage = new PartDetailPage(driver);
+        page.navigate(UiTestSupport.BASE_URL + "/web/part/" + partId + "/details");
+        PartDetailPage partPage = new PartDetailPage(page);
         assertTrue(partPage.waitForStatusBadgeToContain("NO STOCK"), "A freshly created Part must show NO STOCK");
 
         // 2. Add a Parameter, creating its Template inline (none exists yet for this unique name)
@@ -97,13 +106,13 @@ public class InvenTreeCrossFunctionalFlowUITest {
         // Item's own page (verified live), not back to the Part - so return
         // to the Part page explicitly before checking its status badge.
         partPage.openAddStockModal().submit();
-        driver.get(UiTestSupport.BASE_URL + "/web/part/" + partId + "/details");
-        partPage = new PartDetailPage(driver);
+        page.navigate(UiTestSupport.BASE_URL + "/web/part/" + partId + "/details");
+        partPage = new PartDetailPage(page);
         assertTrue(partPage.waitForStatusBadgeToContain("IN STOCK: 1"),
                 "Adding one unit of stock must update the status badge to IN STOCK: 1");
 
         // 4. Verify stock is aggregated in the parent Category's Parts view
-        categoryPage = PartCategoryPage.openList(driver, UiTestSupport.BASE_URL);
+        categoryPage = PartCategoryPage.openList(page, UiTestSupport.BASE_URL);
         categoryPage.openCategoryByName(categoryName);
         categoryPage.openPartsTab();
         assertEquals(categoryPage.getTotalStockForPart(partName), "1",

@@ -1,11 +1,8 @@
 package ui.pages;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
-
-import java.time.Duration;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.TimeoutError;
 
 /**
  * Part detail page: the stock status badge, the Part Actions menu
@@ -13,16 +10,11 @@ import java.time.Duration;
  */
 public class PartDetailPage {
 
-    private static final By PART_ACTIONS_MENU = By.cssSelector("[aria-label='action-menu-part-actions']");
-    private static final By ADD_STOCK_BUTTON = By.cssSelector("[aria-label='action-button-add-stock-item']");
+    private final Page page;
 
-    private final WebDriver driver;
-    private final WebDriverWait wait;
-
-    public PartDetailPage(WebDriver driver) {
-        this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[normalize-space()='Part Details']")));
+    public PartDetailPage(Page page) {
+        this.page = page;
+        page.locator(":text-is(\"Part Details\")").first().waitFor();
     }
 
     /**
@@ -32,8 +24,7 @@ public class PartDetailPage {
      * the page all come after it in document order.
      */
     public String getStatusBadgeText() {
-        By badge = By.cssSelector("span.mantine-Badge-label");
-        return wait.until(ExpectedConditions.visibilityOfElementLocated(badge)).getText();
+        return page.locator("span.mantine-Badge-label").first().textContent();
     }
 
     /**
@@ -44,9 +35,10 @@ public class PartDetailPage {
      */
     public boolean waitForStatusBadgeToContain(String expectedSubstring) {
         try {
-            wait.until(d -> getStatusBadgeText().contains(expectedSubstring));
+            page.locator("span.mantine-Badge-label:has-text(\"" + expectedSubstring + "\")")
+                    .first().waitFor(new Locator.WaitForOptions().setTimeout(10000));
             return true;
-        } catch (org.openqa.selenium.TimeoutException notShown) {
+        } catch (TimeoutError notShown) {
             return false;
         }
     }
@@ -57,43 +49,46 @@ public class PartDetailPage {
      * against a running instance via each tablist's aria-label.
      */
     private void openTab(String tabName) {
-        By tab = By.xpath("//*[@aria-label='panel-tabs-part']//*[normalize-space()='" + tabName + "']");
-        wait.until(ExpectedConditions.elementToBeClickable(tab)).click();
+        page.locator("[aria-label='panel-tabs-part']").locator(":text-is(\"" + tabName + "\")").click();
     }
 
     // --- Part Actions menu ---
 
     public FormModal openEditModal() {
-        wait.until(ExpectedConditions.elementToBeClickable(PART_ACTIONS_MENU)).click();
-        wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[normalize-space()='Edit']"))).click();
-        return new FormModal(driver);
+        page.locator("[aria-label='action-menu-part-actions']").click();
+        page.locator(":text-is(\"Edit\")").click();
+        return new FormModal(page);
     }
 
     public boolean isDeleteActionDisabled() {
-        wait.until(ExpectedConditions.elementToBeClickable(PART_ACTIONS_MENU)).click();
-        boolean disabled = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                        By.xpath("//button[normalize-space()='Delete']")))
-                .getAttribute("data-disabled") != null;
-        driver.findElement(By.tagName("body")).sendKeys(org.openqa.selenium.Keys.ESCAPE);
-        return disabled;
+        page.locator("[aria-label='action-menu-part-actions']").click();
+        // :text-is("Delete") would resolve to the innermost element carrying
+        // that exact text (an inner label <div>), not the <button> itself
+        // that actually carries data-disabled - verified directly against a
+        // running instance - so this anchors on the button tag instead.
+        Locator deleteButton = page.locator("button:has-text(\"Delete\")");
+        deleteButton.first().waitFor();
+        String disabled = deleteButton.first().getAttribute("data-disabled");
+        page.keyboard().press("Escape");
+        return disabled != null;
     }
 
     // --- Parameters tab ---
 
     public FormModal openAddParameterModal() {
         openTab("Parameters");
-        wait.until(ExpectedConditions.elementToBeClickable(By.xpath("(//button[.//*[local-name()='svg' and contains(@class,'tabler-icon-plus')]])[1]"))).click();
-        wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[normalize-space()='Create Parameter']"))).click();
-        return new FormModal(driver);
+        page.locator("button:has(svg.tabler-icon-plus)").first().click();
+        page.locator(":text-is(\"Create Parameter\")").click();
+        return new FormModal(page);
     }
 
     public boolean parametersTableContains(String templateName, String dataValue) {
         openTab("Parameters");
-        By row = By.xpath("//tr[.//*[normalize-space()='" + templateName + "'] and .//*[normalize-space()='" + dataValue + "']]");
         try {
-            wait.until(ExpectedConditions.visibilityOfElementLocated(row));
+            page.locator("tr:has-text(\"" + templateName + "\"):has-text(\"" + dataValue + "\")")
+                    .first().waitFor(new Locator.WaitForOptions().setTimeout(5000));
             return true;
-        } catch (org.openqa.selenium.TimeoutException notShown) {
+        } catch (TimeoutError notShown) {
             return false;
         }
     }
@@ -102,7 +97,7 @@ public class PartDetailPage {
 
     public FormModal openAddStockModal() {
         openTab("Stock");
-        wait.until(ExpectedConditions.elementToBeClickable(ADD_STOCK_BUTTON)).click();
-        return new FormModal(driver);
+        page.locator("[aria-label='action-button-add-stock-item']").click();
+        return new FormModal(page);
     }
 }
