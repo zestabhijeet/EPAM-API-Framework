@@ -292,6 +292,6 @@ public class InvenTreePartE2ETest {
     }
 
     private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
+        return value == null || value.isBlank() || value.startsWith("REPLACE_WITH_");
     }
 }

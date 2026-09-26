@@ -1,24 +1,22 @@
 package main;
+
 import constant.ApplicationConstant;
-import org.junit.jupiter.api.Test;
+import org.testng.annotations.Test;
 import pojo.UserType;
 import utils.AppReader;
-import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.Test;
 
+import static org.testng.Assert.assertEquals;
 
 public class UserPreferenceTest {
 
     @Test
-    void validateUserPreferences() throws Exception {
+    public void validateUserPreferences() throws Exception {
 
         UserType ouser = AppReader.readuser();
 
-        assertEquals(ApplicationConstant.EXPECTED_THEME,ouser.getPreferences().getTheme());
+        assertEquals(ouser.getPreferences().getTheme(), ApplicationConstant.EXPECTED_THEME);
 
-        assertEquals(ApplicationConstant.EXPECTED_NOTIFICATIONS,ouser.getPreferences().isNotification());
-
-
+        assertEquals(ouser.getPreferences().isNotification(), ApplicationConstant.EXPECTED_NOTIFICATIONS);
 
     }
 }
