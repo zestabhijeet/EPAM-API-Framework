@@ -1,0 +1,55 @@
+{
+  "departments": [
+    {
+      "deptname": "Engineering",
+      "employees": [
+        {
+          "id": 101,
+          "username": "jdoe",
+          "firstName": "John",
+          "lastName": "Doe",
+          "email": "john.doe@example.com",
+          "phoneNumber": "+1-555-0199",
+          "isActive": true,
+          "roles": [
+            "user",
+            "editor"
+          ],
+          "address": {
+            "street": "123 Main St",
+            "city": "Anytown",
+            "state": "NY",
+            "zipCode": "10001"
+          },
+          "preferences": {
+            "theme": "dark",
+            "notifications": true
+          }
+        },
+        {
+          "id": 102,
+          "username": "doe",
+          "firstName": "Ron",
+          "lastName": "Dave",
+          "email": "ron.dave@example.com",
+          "phoneNumber": "+2-555-0100",
+          "isActive": false,
+          "roles": [
+            "creator",
+            "editor"
+          ],
+          "address": {
+            "street": "222 Main St",
+            "city": "Chinatown",
+            "state": "YW",
+            "zipCode": "200000"
+          },
+          "preferences": {
+            "theme": "light",
+            "notifications": false
+          }
+        }
+      ]
+    }
+  ]
+}

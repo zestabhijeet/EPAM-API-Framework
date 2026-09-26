@@ -1,0 +1,15 @@
+<DataSourcesHistory>
+  <DataSourceFromHistory isRemovedFromProject="false">
+    <data-source source="LOCAL" name="default@localhost" uuid="1c0b0061-1dba-4570-996f-bce3e6ffdd2a">
+      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="H2" />
+      <driver-ref>h2.unified</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.h2.Driver</jdbc-driver>
+      <jdbc-url>jdbc:h2:tcp://localhost:9092/default</jdbc-url>
+      <secret-storage>master_key</secret-storage>
+      <user-name>sa</user-name>
+      <schema-mapping />
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+  </DataSourceFromHistory>
+</DataSourcesHistory>

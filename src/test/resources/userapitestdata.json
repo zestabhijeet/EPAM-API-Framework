@@ -1,0 +1,13 @@
+{
+  "createUser": {
+    "name": "TestUserNew",
+    "job": "QA"
+  },
+  "updateUser": {
+    "name": "TestUserdetails",
+    "job": "SDET test"
+  },
+  "patchUser": {
+    "job": "SME SDET"
+  }
+}
