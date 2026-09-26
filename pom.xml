@@ -94,6 +94,10 @@
                         <configuration>
                             <includes>
                                 <include>**/InvenTreePartE2ETest.java</include>
+                                <include>**/InvenTreePartCategoryE2ETest.java</include>
+                                <include>**/InvenTreePartListQueryTest.java</include>
+                                <include>**/InvenTreeSupplierPartE2ETest.java</include>
+                                <include>**/InvenTreeSecurityTest.java</include>
                             </includes>
                         </configuration>
                     </plugin>
@@ -118,6 +122,10 @@
                         <configuration>
                             <includes>
                                 <include>**/InvenTreePartE2ETest.java</include>
+                                <include>**/InvenTreePartCategoryE2ETest.java</include>
+                                <include>**/InvenTreePartListQueryTest.java</include>
+                                <include>**/InvenTreeSupplierPartE2ETest.java</include>
+                                <include>**/InvenTreeSecurityTest.java</include>
                                 <include>**/AssertionWithRest.java</include>
                                 <include>**/PojoUsageGuide.java</include>
                                 <include>**/UserApiTest.java</include>

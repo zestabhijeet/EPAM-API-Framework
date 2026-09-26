@@ -6,23 +6,27 @@ import files.ConfigManager;
 import io.qameta.allure.Allure;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import pojo.InventreePart;
-import specifications.RequestSpecBuilderUtil;
 
-import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import static inventree.InvenTreeApiSupport.PART_PATH;
+import static inventree.InvenTreeApiSupport.authenticatedSpec;
+import static inventree.InvenTreeApiSupport.isBlank;
+import static inventree.InvenTreeApiSupport.requireConfigured;
+import static inventree.InvenTreeApiSupport.unique;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.nullValue;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
@@ -35,17 +39,12 @@ import static org.testng.Assert.assertTrue;
  */
 public class InvenTreePartE2ETest {
 
-    static {
-        // ensure config.properties is loaded before the property lookups below run
-        ConfigManager.load(Paths.get(ApplicationConstant.CONFIG_FILE_PATH));
-    }
-
-    private static final String PART_PATH = ConfigManager.getProperty(ApplicationConstant.INVENTREE_PART_PATH_KEY, ApplicationConstant.INVENTREE_PART_PATH_DEFAULT);
-    private static final String BASE_URL = ConfigManager.getProperty(ApplicationConstant.INVENTREE_BASE_URL_KEY, "");
-    private static final String API_TOKEN = ConfigManager.getProperty(ApplicationConstant.INVENTREE_API_TOKEN_KEY, "");
+    // SPEC must be initialized first: it forces InvenTreeApiSupport's static
+    // block to run, which loads config.properties before CATEGORY_ID/LOCATION_ID
+    // below read from it.
+    private static final RequestSpecification SPEC = authenticatedSpec();
     private static final String CATEGORY_ID = ConfigManager.getProperty(ApplicationConstant.INVENTREE_CATEGORY_ID_KEY, "");
     private static final String LOCATION_ID = ConfigManager.getProperty(ApplicationConstant.INVENTREE_LOCATION_ID_KEY, "");
-    private static final RequestSpecification SPEC = RequestSpecBuilderUtil.getRequestSpecWithAuth(BASE_URL, "Authorization", "Token " + API_TOKEN);
     private final List<Integer> createdPartIds = new ArrayList<>();
     private Integer minimalPartId;
     private Integer fullPartId;
@@ -54,9 +53,7 @@ public class InvenTreePartE2ETest {
 
     @BeforeClass(alwaysRun = true)
     public void validateSchemaEntryPoint() {
-        if (isBlank(BASE_URL) || isBlank(API_TOKEN)) {
-            throw new SkipException("InvenTree E2E skipped: set INVENTREE_BASE_URL and INVENTREE_API_TOKEN");
-        }
+        requireConfigured();
         // limit=1 forces the paginated {count, results} shape; with no pagination
         // params InvenTree returns a bare array instead.
         Response response = RestClient.get(SPEC, PART_PATH + "?limit=1");
@@ -104,6 +101,106 @@ public class InvenTreePartE2ETest {
             response.then()
                     .body(matchesJsonSchemaInClasspath("schema/inventree-part-detail.json"))
                     .body("name", equalTo(name));
+        }
+    }
+
+    @DataProvider(name = "partFieldLengthBoundaries")
+    public Object[][] partFieldLengthBoundaries() {
+        return new Object[][] {
+                { "ipn", "I".repeat(100), 201 },
+                { "ipn", "I".repeat(101), 400 },
+                { "description", "D".repeat(250), 201 },
+                { "description", "D".repeat(251), 400 },
+                { "keywords", "K".repeat(250), 201 },
+                { "keywords", "K".repeat(251), 400 },
+                { "notes", "N".repeat(50000), 201 },
+                { "notes", "N".repeat(50001), 400 }
+        };
+    }
+
+    @Test(dataProvider = "partFieldLengthBoundaries", dependsOnMethods = "executeAllPartScenariosAsSingleE2EFlow")
+    public void validatePartFieldLengthBoundary(String field, String value, int expectedStatus) {
+        InventreePart payload = new InventreePart();
+        payload.setName(unique("E2E Boundary " + field));
+        applyBoundaryField(payload, field, value);
+        Response response = RestClient.post(SPEC, PART_PATH, payload);
+        assertEquals(response.statusCode(), expectedStatus,
+                "Field '" + field + "' should follow its published maxLength contract");
+        if (response.statusCode() == 201) {
+            track(response.jsonPath().getInt("pk"));
+        }
+    }
+
+    @DataProvider(name = "partDefaultExpiryBoundaries")
+    public Object[][] partDefaultExpiryBoundaries() {
+        return new Object[][] {
+                { 0, 201 },
+                { 30, 201 },
+                { -1, 400 }
+        };
+    }
+
+    @Test(dataProvider = "partDefaultExpiryBoundaries", dependsOnMethods = "executeAllPartScenariosAsSingleE2EFlow")
+    public void validateDefaultExpiryBoundary(int defaultExpiry, int expectedStatus) {
+        InventreePart payload = new InventreePart();
+        payload.setName(unique("E2E Expiry"));
+        payload.setDefaultExpiry(defaultExpiry);
+        Response response = RestClient.post(SPEC, PART_PATH, payload);
+        assertEquals(response.statusCode(), expectedStatus, "default_expiry must respect the >= 0 contract");
+        if (response.statusCode() == 201) {
+            track(response.jsonPath().getInt("pk"));
+        }
+    }
+
+    /**
+     * {@code units} is validated against InvenTree's registered physical-unit
+     * vocabulary (e.g. "kg"), not merely a maxLength string constraint, so it
+     * is exercised as a valid-value check rather than a length boundary.
+     */
+    @Test(dependsOnMethods = "executeAllPartScenariosAsSingleE2EFlow")
+    public void validateUnitsMustBeARegisteredPhysicalUnit() {
+        InventreePart validPayload = new InventreePart();
+        validPayload.setName(unique("E2E Valid Units"));
+        validPayload.setUnits("kg");
+        Response validResponse = RestClient.post(SPEC, PART_PATH, validPayload);
+        assertEquals(validResponse.statusCode(), 201, "A registered physical unit (kg) must be accepted");
+        track(validResponse.jsonPath().getInt("pk"));
+
+        InventreePart invalidPayload = new InventreePart();
+        invalidPayload.setName(unique("E2E Invalid Units"));
+        invalidPayload.setUnits("notarealunit");
+        Response invalidResponse = RestClient.post(SPEC, PART_PATH, invalidPayload);
+        assertEquals(invalidResponse.statusCode(), 400, "An unregistered unit string must be rejected");
+    }
+
+    /**
+     * keywords/units/notes are nullable; a Jackson NON_NULL POJO would drop an
+     * explicit null instead of sending it, so this uses a raw map to prove the
+     * API accepts a real JSON null distinct from simply omitting the field.
+     */
+    @Test(dependsOnMethods = "executeAllPartScenariosAsSingleE2EFlow")
+    public void validateNullableFieldsAcceptExplicitNull() {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("name", unique("E2E Nullable Fields"));
+        payload.put("keywords", null);
+        payload.put("units", null);
+        payload.put("notes", null);
+        Response response = RestClient.post(SPEC, PART_PATH, payload);
+        response.then()
+                .statusCode(201)
+                .body("keywords", nullValue())
+                .body("units", nullValue())
+                .body("notes", nullValue());
+        track(response.jsonPath().getInt("pk"));
+    }
+
+    private static void applyBoundaryField(InventreePart part, String field, String value) {
+        switch (field) {
+            case "ipn": part.setIpn(value); break;
+            case "description": part.setDescription(value); break;
+            case "keywords": part.setKeywords(value); break;
+            case "notes": part.setNotes(value); break;
+            default: throw new IllegalArgumentException("Unknown boundary field: " + field);
         }
     }
 
@@ -278,10 +375,6 @@ public class InvenTreePartE2ETest {
         createdPartIds.add(id);
     }
 
-    private static String unique(String prefix) {
-        return prefix + "-" + LocalDate.now() + "-" + UUID.randomUUID().toString().substring(0, 8);
-    }
-
     private static void applyConfiguredCategoryAndLocation(InventreePart payload) {
         if (!isBlank(CATEGORY_ID)) {
             payload.setCategory(Integer.parseInt(CATEGORY_ID));
@@ -289,9 +382,5 @@ public class InvenTreePartE2ETest {
         if (!isBlank(LOCATION_ID)) {
             payload.setDefaultLocation(Integer.parseInt(LOCATION_ID));
         }
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank() || value.startsWith("REPLACE_WITH_");
     }
 }

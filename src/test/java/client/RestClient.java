@@ -102,6 +102,16 @@ public class RestClient {
                 .delete(endpoint));
     }
 
+    // DELETE with a request body (custom spec) — some InvenTree endpoints
+    // (e.g. Part Category) require a body specifying cascade behaviour
+    public static Response delete(RequestSpecification spec, String endpoint, Object body) {
+        return execute("DELETE", endpoint, body, () -> given()
+                .spec(spec)
+                .body(body)
+                .when()
+                .delete(endpoint));
+    }
+
     private static Response execute(String  method,String endpoint,Object body,Supplier<Response> request){
         Allure.addAttachment("Request", "text/plain", method + " " + endpoint);
         if (body != null) {

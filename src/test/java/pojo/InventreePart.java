@@ -35,6 +35,8 @@ public class InventreePart {
     private Integer category;
     @JsonProperty("default_location")
     private Integer defaultLocation;
+    @JsonProperty("default_expiry")
+    private Integer defaultExpiry;
     @JsonProperty("barcode_hash")
     private String barcodeHash;
 
@@ -191,6 +193,14 @@ public class InventreePart {
 
     public void setDefaultLocation(Integer defaultLocation) {
         this.defaultLocation = defaultLocation;
+    }
+
+    public Integer getDefaultExpiry() {
+        return defaultExpiry;
+    }
+
+    public void setDefaultExpiry(Integer defaultExpiry) {
+        this.defaultExpiry = defaultExpiry;
     }
 
     public String getBarcodeHash() {
