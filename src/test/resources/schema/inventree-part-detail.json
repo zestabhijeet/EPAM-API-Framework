@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["pk", "name"],
+  "properties": {
+    "pk": { "type": "integer", "minimum": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "IPN": { "type": ["string", "null"], "maxLength": 100 },
+    "description": { "type": "string", "maxLength": 250 },
+    "keywords": { "type": ["string", "null"], "maxLength": 250 },
+    "units": { "type": ["string", "null"], "maxLength": 20 },
+    "revision": { "type": ["string", "null"], "maxLength": 100 },
+    "active": { "type": "boolean" },
+    "locked": { "type": "boolean" },
+    "category": { "type": ["integer", "null"] },
+    "default_location": { "type": ["integer", "null"] }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,38 @@
+{
+  "minimalPart": {},
+  "fullPart": {
+    "revision": "A",
+    "keywords": "e2e,inventree",
+    "units": "each",
+    "description": "Created by the InvenTree Part E2E flow",
+    "notes": "E2E test data",
+    "active": true,
+    "component": true,
+    "assembly": false,
+    "consumable": false,
+    "purchaseable": true,
+    "salable": true,
+    "trackable": false,
+    "testable": false
+  },
+  "putReplacement": {
+    "description": "Replaced by PUT",
+    "revision": "B",
+    "active": true,
+    "component": true,
+    "assembly": false,
+    "consumable": false,
+    "purchaseable": true,
+    "salable": true,
+    "trackable": false,
+    "testable": false
+  },
+  "invalidPutWithoutName": {
+    "description": "Invalid replacement without name"
+  },
+  "readOnlyFieldAttempt": {
+    "description": "Writable update after read-only attempt",
+    "pk": 999999999,
+    "barcode_hash": "must-not-overwrite"
+  }
+}

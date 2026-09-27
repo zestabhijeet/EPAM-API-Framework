@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["pk", "name", "currency"],
+  "properties": {
+    "pk": { "type": "integer", "minimum": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "currency": { "type": "string" },
+    "is_supplier": { "type": "boolean" },
+    "is_manufacturer": { "type": "boolean" },
+    "is_customer": { "type": "boolean" }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,48 @@
+{
+  "company": {
+    "name": "TechCorp",
+    "location": "India",
+    "departments": [
+      {
+        "name": "Engineering",
+        "employees": [
+          {
+            "id": 1,
+            "name": "Abhijeet",
+            "age": 25,
+            "skills": ["Java", "RestAssured"],
+            "address": {
+              "city": "Bangalore",
+              "zip": "560001"
+            }
+          },
+          {
+            "id": 2,
+            "name": "Rahul",
+            "age": 30,
+            "skills": ["saucelabs", "Selenium"],
+            "address": {
+              "city": "Hyderabad",
+              "zip": "500001"
+            }
+          }
+        ]
+      },
+      {
+        "name": "QA",
+        "employees": [
+          {
+            "id": 3,
+            "name": "Sneha",
+            "age": 28,
+            "skills": ["Cypress", "Selenium"],
+            "address": {
+              "city": "Pune",
+              "zip": "411001"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
