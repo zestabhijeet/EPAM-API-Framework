@@ -93,6 +93,49 @@ public class PartDetailPage {
         }
     }
 
+    /**
+     * Opens the row-level action menu for the parameter row at {@code rowIndex}
+     * (0-based, in table order) and clicks Edit. Rows carry a stable
+     * {@code aria-label="row-action-menu-<index>"} - verified directly against
+     * a running instance.
+     */
+    public FormModal openEditParameterModal(int rowIndex) {
+        openTab("Parameters");
+        page.locator("[aria-label='row-action-menu-" + rowIndex + "']").click();
+        page.locator(":text-is(\"Edit\")").click();
+        return new FormModal(page);
+    }
+
+    /**
+     * Opens the row-level action menu for the parameter row at {@code rowIndex}
+     * and clicks Delete. InvenTree shows a custom (non-native) confirmation
+     * dialog - "Are you sure you want to delete this item?" with Cancel/Delete
+     * buttons - verified directly against a running instance, so this returns
+     * a {@link FormModal} bound to that confirmation dialog; callers confirm
+     * via {@link FormModal#confirmDelete()}.
+     */
+    public FormModal openDeleteParameterModal(int rowIndex) {
+        openTab("Parameters");
+        page.locator("[aria-label='row-action-menu-" + rowIndex + "']").click();
+        page.locator(":text-is(\"Delete\")").click();
+        return new FormModal(page);
+    }
+
+    // --- Part Details panel (top summary fields) ---
+
+    /**
+     * Checks whether the given text appears anywhere in the "Part Details"
+     * tab - used for asserting core field values (units, category,
+     * description, link, etc.) shown after creating a Part with all optional
+     * fields set (UI-DET-002/UI-CRT-002). Verified directly against a running
+     * instance: Name/IPN/Description/Category/Units/Link render as plain
+     * label-value rows on this tab, so a substring text locator is enough.
+     */
+    public boolean detailsPanelContains(String text) {
+        openTab("Part Details");
+        return page.locator("text=" + text).first().isVisible();
+    }
+
     // --- Stock tab ---
 
     public FormModal openAddStockModal() {

@@ -75,4 +75,34 @@ public class InvenTreePartCategoryUITest {
         assertTrue(modal.hasText("This field is required."), "The Name field must show its specific validation message");
         modal.cancel();
     }
+
+    /**
+     * UI-CAT-005: a structural Category's own "Create Part" action still
+     * submits the create-Part request (the Category is pre-filled), but the
+     * server rejects it - verified directly against a running instance that
+     * the error surfaces against the Category field, not as a generic banner
+     * only.
+     */
+    @Test
+    public void structuralCategoryRejectsParts() {
+        String structuralCategoryName = UiTestSupport.unique("UI Structural Category");
+        Response categoryResponse = RestClient.post(InvenTreeApiSupport.authenticatedSpec(),
+                InvenTreeApiSupport.CATEGORY_PATH, Map.of("name", structuralCategoryName, "structural", true));
+        Integer structuralCategoryId = categoryResponse.jsonPath().getInt("pk");
+
+        try {
+            PartCategoryPage categoryPage = PartCategoryPage.openList(page, UiTestSupport.BASE_URL);
+            categoryPage.openCategoryByName(structuralCategoryName);
+            categoryPage.openPartsTab();
+            FormModal modal = categoryPage.openCreatePartModal().setText("name", UiTestSupport.unique("UI Rejected Part"));
+            modal.submit();
+            assertTrue(modal.hasFormError(), "Creating a Part in a structural Category must show the form error banner");
+            assertTrue(modal.hasText("Parts cannot be assigned to structural part categories!"),
+                    "The Category field must show its specific validation message");
+            modal.cancel();
+        } finally {
+            RestClient.delete(InvenTreeApiSupport.authenticatedSpec(), InvenTreeApiSupport.CATEGORY_PATH + structuralCategoryId + "/",
+                    Map.of("delete_parts", false, "delete_child_categories", false));
+        }
+    }
 }
