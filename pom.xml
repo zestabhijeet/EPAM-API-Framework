@@ -131,6 +131,8 @@
                                 <include>**/InvenTreePartCategoryUITest.java</include>
                                 <include>**/InvenTreePartUITest.java</include>
                                 <include>**/InvenTreeCrossFunctionalFlowUITest.java</include>
+                                <include>**/InvenTreePartAttributesUITest.java</include>
+                                <include>**/InvenTreePartParametersUITest.java</include>
                             </includes>
                         </configuration>
                     </plugin>
@@ -163,6 +165,8 @@
                                 <include>**/InvenTreePartCategoryUITest.java</include>
                                 <include>**/InvenTreePartUITest.java</include>
                                 <include>**/InvenTreeCrossFunctionalFlowUITest.java</include>
+                                <include>**/InvenTreePartAttributesUITest.java</include>
+                                <include>**/InvenTreePartParametersUITest.java</include>
                                 <include>**/AssertionWithRest.java</include>
                                 <include>**/PojoUsageGuide.java</include>
                                 <include>**/UserApiTest.java</include>

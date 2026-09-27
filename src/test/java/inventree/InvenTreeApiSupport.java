@@ -32,6 +32,8 @@ public final class InvenTreeApiSupport {
     public static final String CATEGORY_PATH = "/api/part/category/";
     public static final String COMPANY_PATH = "/api/company/";
     public static final String SUPPLIER_PART_PATH = "/api/company/part/";
+    public static final String PARAMETER_TEMPLATE_PATH = "/api/parameter/template/";
+    public static final String PARAMETER_PATH = "/api/parameter/";
 
     private InvenTreeApiSupport() {
     }

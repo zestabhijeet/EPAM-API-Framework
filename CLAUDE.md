@@ -118,6 +118,13 @@ src/test/resources/
   Stock Item" lands on the new Stock Item's own page, not the Part page it was opened from (verified
   live). After such a submit, explicitly re-navigate before asserting on the original page's state;
   don't assume the submit leaves you where you started.
+- **A pure `non_field_errors` server validation error (e.g. "name, IPN, revision must make a unique
+  set") renders only its own message as the form banner — `FormModal`'s generic "Errors exist for
+  one or more form fields" text does NOT appear in that case**, unlike a per-field error (blank
+  Name, invalid Link), which shows both. Confirmed live: an automated assertion on
+  `hasFormError()` failed for a non-field-error scenario even though the specific message was
+  present. For a non-field error, assert on `hasText(<specific message>)` alone; don't also assert
+  `hasFormError()`.
 - Reuse the generic `FormModal` driver for any Mantine create/edit dialog instead of writing a new
   bespoke Page Object per modal — it already handles field-fill, submit-and-wait-for-outcome,
   form-error detection, and nested/inline-create modals via the dialog stack (`last()`).

@@ -44,6 +44,12 @@ public class FormModal {
         return this;
     }
 
+    /** Sets a Mantine switch/checkbox field (e.g. {@code boolean-field-structural}) to the given state. */
+    public FormModal setBoolean(String fieldName, boolean value) {
+        dialog.locator("[aria-label='boolean-field-" + fieldName + "']").setChecked(value);
+        return this;
+    }
+
     /**
      * Clicks an inline "create new related record" action button, identified
      * by InvenTree's {@code action-button-<action-name>} convention (e.g.
@@ -83,7 +89,20 @@ public class FormModal {
      * can then assert on.
      */
     public void submit() {
-        dialog.locator(":text-is(\"Submit\")").click();
+        submitAs("Submit");
+    }
+
+    /**
+     * For destructive-action confirmation dialogs whose confirm button reads
+     * "Delete" rather than "Submit" (e.g. the Parameter row delete
+     * confirmation) - same wait-for-outcome contract as {@link #submit()}.
+     */
+    public void confirmDelete() {
+        submitAs("Delete");
+    }
+
+    private void submitAs(String buttonText) {
+        dialog.locator(":text-is(\"" + buttonText + "\")").click();
         long deadline = System.currentTimeMillis() + 10000;
         while (System.currentTimeMillis() < deadline) {
             if (dialog.isHidden() || dialog.locator("text=" + FORM_ERROR_TEXT).count() > 0) {
@@ -95,5 +114,17 @@ public class FormModal {
 
     public void cancel() {
         dialog.locator(":text-is(\"Cancel\")").click();
+    }
+
+    /**
+     * Whether the Submit button is currently disabled - e.g. editing a
+     * locked Part disables the entire form instead of individual fields,
+     * verified directly against a running instance. Anchored on the button
+     * tag (not {@code :text-is()}) for the same reason as
+     * {@link PartDetailPage#isDeleteActionDisabled()}.
+     */
+    public boolean isSubmitDisabled() {
+        Locator submitButton = dialog.locator("button:has-text(\"Submit\")").first();
+        return submitButton.getAttribute("data-disabled") != null;
     }
 }

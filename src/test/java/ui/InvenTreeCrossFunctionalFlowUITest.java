@@ -37,6 +37,7 @@ public class InvenTreeCrossFunctionalFlowUITest {
     private Integer categoryId;
     private String categoryName;
     private Integer partId;
+    private Integer parameterTemplateId;
 
     @BeforeClass(alwaysRun = true)
     public void setUp() {
@@ -59,6 +60,9 @@ public class InvenTreeCrossFunctionalFlowUITest {
             RestClient.patch(InvenTreeApiSupport.authenticatedSpec(), InvenTreeApiSupport.PART_PATH + partId + "/",
                     Map.of("active", false));
             RestClient.delete(InvenTreeApiSupport.authenticatedSpec(), InvenTreeApiSupport.PART_PATH + partId + "/");
+        }
+        if (parameterTemplateId != null) {
+            RestClient.delete(InvenTreeApiSupport.authenticatedSpec(), InvenTreeApiSupport.PARAMETER_TEMPLATE_PATH + parameterTemplateId + "/");
         }
         if (categoryId != null) {
             RestClient.delete(InvenTreeApiSupport.authenticatedSpec(), InvenTreeApiSupport.CATEGORY_PATH + categoryId + "/",
@@ -98,6 +102,10 @@ public class InvenTreeCrossFunctionalFlowUITest {
         FormModal newTemplateModal = addParameterModal.openInlineCreate("create-new-parameter-template");
         newTemplateModal.setText("name", templateName).submit();
         addParameterModal.setText("data", parameterValue).submit();
+
+        Response templateLookup = RestClient.get(InvenTreeApiSupport.authenticatedSpec(),
+                InvenTreeApiSupport.PARAMETER_TEMPLATE_PATH + "?search=" + templateName + "&limit=10");
+        parameterTemplateId = templateLookup.jsonPath().getInt("results[0].pk");
 
         assertTrue(partPage.parametersTableContains(templateName, parameterValue),
                 "The Parameters tab must list the newly added parameter");
