@@ -11,10 +11,30 @@ import com.microsoft.playwright.TimeoutError;
 public class PartDetailPage {
 
     private final Page page;
+    private final Locator partDetailsLoadedMarker;
+    private final Locator firstStatusBadge;
+    private final Locator partTablist;
+    private final Locator partActionsMenuButton;
+    private final Locator editMenuItem;
+    private final Locator deleteButton;
+    private final Locator addRowButton;
+    private final Locator createParameterMenuItem;
+    private final Locator deleteMenuItem;
+    private final Locator addStockItemButton;
 
     public PartDetailPage(Page page) {
         this.page = page;
-        page.locator(":text-is(\"Part Details\")").first().waitFor();
+        this.partDetailsLoadedMarker = page.locator(":text-is(\"Part Details\")").first();
+        this.firstStatusBadge = page.locator("span.mantine-Badge-label").first();
+        this.partTablist = page.locator("[aria-label='panel-tabs-part']");
+        this.partActionsMenuButton = page.locator("[aria-label='action-menu-part-actions']");
+        this.editMenuItem = page.locator(":text-is(\"Edit\")");
+        this.deleteButton = page.locator("button:has-text(\"Delete\")");
+        this.addRowButton = page.locator("button:has(svg.tabler-icon-plus)").first();
+        this.createParameterMenuItem = page.locator(":text-is(\"Create Parameter\")");
+        this.deleteMenuItem = page.locator(":text-is(\"Delete\")");
+        this.addStockItemButton = page.locator("[aria-label='action-button-add-stock-item']");
+        partDetailsLoadedMarker.waitFor();
     }
 
     /**
@@ -24,7 +44,7 @@ public class PartDetailPage {
      * the page all come after it in document order.
      */
     public String getStatusBadgeText() {
-        return page.locator("span.mantine-Badge-label").first().textContent();
+        return firstStatusBadge.textContent();
     }
 
     /**
@@ -49,24 +69,23 @@ public class PartDetailPage {
      * against a running instance via each tablist's aria-label.
      */
     private void openTab(String tabName) {
-        page.locator("[aria-label='panel-tabs-part']").locator(":text-is(\"" + tabName + "\")").click();
+        partTablist.locator(":text-is(\"" + tabName + "\")").click();
     }
 
     // --- Part Actions menu ---
 
     public FormModal openEditModal() {
-        page.locator("[aria-label='action-menu-part-actions']").click();
-        page.locator(":text-is(\"Edit\")").click();
+        partActionsMenuButton.click();
+        editMenuItem.click();
         return new FormModal(page);
     }
 
     public boolean isDeleteActionDisabled() {
-        page.locator("[aria-label='action-menu-part-actions']").click();
+        partActionsMenuButton.click();
         // :text-is("Delete") would resolve to the innermost element carrying
         // that exact text (an inner label <div>), not the <button> itself
         // that actually carries data-disabled - verified directly against a
         // running instance - so this anchors on the button tag instead.
-        Locator deleteButton = page.locator("button:has-text(\"Delete\")");
         deleteButton.first().waitFor();
         String disabled = deleteButton.first().getAttribute("data-disabled");
         page.keyboard().press("Escape");
@@ -77,8 +96,8 @@ public class PartDetailPage {
 
     public FormModal openAddParameterModal() {
         openTab("Parameters");
-        page.locator("button:has(svg.tabler-icon-plus)").first().click();
-        page.locator(":text-is(\"Create Parameter\")").click();
+        addRowButton.click();
+        createParameterMenuItem.click();
         return new FormModal(page);
     }
 
@@ -102,7 +121,7 @@ public class PartDetailPage {
     public FormModal openEditParameterModal(int rowIndex) {
         openTab("Parameters");
         page.locator("[aria-label='row-action-menu-" + rowIndex + "']").click();
-        page.locator(":text-is(\"Edit\")").click();
+        editMenuItem.click();
         return new FormModal(page);
     }
 
@@ -117,7 +136,7 @@ public class PartDetailPage {
     public FormModal openDeleteParameterModal(int rowIndex) {
         openTab("Parameters");
         page.locator("[aria-label='row-action-menu-" + rowIndex + "']").click();
-        page.locator(":text-is(\"Delete\")").click();
+        deleteMenuItem.click();
         return new FormModal(page);
     }
 
@@ -140,7 +159,7 @@ public class PartDetailPage {
 
     public FormModal openAddStockModal() {
         openTab("Stock");
-        page.locator("[aria-label='action-button-add-stock-item']").click();
+        addStockItemButton.click();
         return new FormModal(page);
     }
 }

@@ -11,18 +11,22 @@ import com.microsoft.playwright.TimeoutError;
 public class AppShell {
 
     private final Page page;
+    private final Locator partsNavLink;
+    private final Locator userMenuButton;
+    private final Locator logoutMenuItem;
 
     public AppShell(Page page) {
         this.page = page;
-        page.locator(":text-is(\"Parts\")").first().waitFor();
+        this.partsNavLink = page.locator(":text-is(\"Parts\")").first();
+        this.userMenuButton = page.locator(":text-is(\"admin\")");
+        this.logoutMenuItem = page.locator("text=Logout");
+        partsNavLink.waitFor();
     }
 
     public LoginPage logout() {
-        page.locator(":text-is(\"admin\")").click();
-        page.locator("text=Logout").click();
-        LoginPage loginPage = new LoginPage(page);
-        page.locator("[aria-label='login-username']").waitFor();
-        return loginPage;
+        userMenuButton.click();
+        logoutMenuItem.click();
+        return new LoginPage(page).waitUntilDisplayed();
     }
 
     /** Waits briefly for a toast/notification containing this text; false if it never appears. */
