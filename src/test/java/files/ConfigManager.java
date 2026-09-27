@@ -19,11 +19,18 @@ public class ConfigManager {
         }
     }
     public static String getProperty(String key) {
+        String upperUnderscoreKey = key.replace('.', '_').toUpperCase(Locale.ROOT);
+
+        // Environment variables take priority, e.g. INVENTREE_BASE_URL overrides inventree.base.url
+        String envValue = System.getenv(upperUnderscoreKey);
+        if (envValue != null && !envValue.isBlank()) {
+            return envValue;
+        }
+
         String value = prop.getProperty(key);
         if (value != null) {
             return value;
         }
-        String upperUnderscoreKey = key.replace('.', '_').toUpperCase(Locale.ROOT);
         value = prop.getProperty(upperUnderscoreKey);
         if (value != null) {
             return value;

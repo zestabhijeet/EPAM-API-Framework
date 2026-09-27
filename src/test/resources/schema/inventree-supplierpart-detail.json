@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["pk", "part", "supplier", "SKU"],
+  "properties": {
+    "pk": { "type": "integer", "minimum": 1 },
+    "part": { "type": "integer" },
+    "supplier": { "type": "integer" },
+    "SKU": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "part_detail": { "type": ["object", "null"] },
+    "supplier_detail": { "type": ["object", "null"] }
+  },
+  "additionalProperties": true
+}
